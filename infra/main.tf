@@ -55,10 +55,13 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# Locals para determinar qué AMI usar
+# Locals para determinar qué AMI usar y generar identificadores únicos
 locals {
   # Usar AMI específica si se proporciona, sino usar data source
   ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.ubuntu.id
+  
+  # Identificador único para este despliegue (evita conflictos entre despliegues)
+  unique_id = substr(md5(timestamp()), 0, 8)
 }
 
 # VPC para aislar la infraestructura temporal
@@ -140,7 +143,7 @@ resource "aws_route_table_association" "ecommerce_public_rta" {
 
 # Security Group para EC2
 resource "aws_security_group" "ecommerce_ec2_sg" {
-  name        = "ecommerce-ec2-sg"
+  name        = "ecommerce-ec2-sg-${local.unique_id}"
   description = "Security group for Ecommerce EC2 instance"
   vpc_id      = aws_vpc.ecommerce_vpc.id
 
@@ -191,7 +194,7 @@ resource "aws_security_group" "ecommerce_ec2_sg" {
 
 # Security Group para RDS
 resource "aws_security_group" "ecommerce_rds_sg" {
-  name        = "ecommerce-rds-sg"
+  name        = "ecommerce-rds-sg-${local.unique_id}"
   description = "Security group for Ecommerce RDS MySQL"
   vpc_id      = aws_vpc.ecommerce_vpc.id
 
@@ -218,17 +221,17 @@ resource "aws_security_group" "ecommerce_rds_sg" {
 
 # DB Subnet Group para RDS
 resource "aws_db_subnet_group" "ecommerce_db_subnet_group" {
-  name       = "ecommerce-db-subnet-group"
+  name       = "ecommerce-db-subnet-group-${local.unique_id}"
   subnet_ids = [aws_subnet.ecommerce_private_subnet_1.id, aws_subnet.ecommerce_private_subnet_2.id]
 
   tags = {
-    Name = "ecommerce-db-subnet-group"
+    Name = "ecommerce-db-subnet-group-${local.unique_id}"
   }
 }
 
 # RDS MySQL Instance
 resource "aws_db_instance" "ecommerce_db" {
-  identifier             = "ecommerce-db-${substr(md5(timestamp()), 0, 8)}"
+  identifier             = "ecommerce-db-${local.unique_id}"
   engine                 = "mysql"
   engine_version         = "8.0"
   instance_class         = var.db_instance_class
@@ -251,7 +254,7 @@ resource "aws_db_instance" "ecommerce_db" {
 # Key Pair para EC2 (usando clave existente o creando nueva)
 resource "aws_key_pair" "ecommerce_key" {
   count      = var.create_key_pair ? 1 : 0
-  key_name   = "ecommerce-key-${substr(md5(timestamp()), 0, 8)}"
+  key_name   = "ecommerce-key-${local.unique_id}"
   public_key = var.ec2_public_key
 
   tags = {
@@ -261,7 +264,7 @@ resource "aws_key_pair" "ecommerce_key" {
 
 # IAM Role para EC2
 resource "aws_iam_role" "ecommerce_ec2_role" {
-  name = "ecommerce-ec2-role-${substr(md5(timestamp()), 0, 8)}"
+  name = "ecommerce-ec2-role-${local.unique_id}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -282,7 +285,7 @@ resource "aws_iam_role" "ecommerce_ec2_role" {
 }
 
 resource "aws_iam_instance_profile" "ecommerce_ec2_profile" {
-  name = "ecommerce-ec2-profile-${substr(md5(timestamp()), 0, 8)}"
+  name = "ecommerce-ec2-profile-${local.unique_id}"
   role = aws_iam_role.ecommerce_ec2_role.name
 }
 

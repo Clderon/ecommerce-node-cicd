@@ -178,6 +178,13 @@ jobs:
         working-directory: ./infra
         run: terraform apply -auto-approve tfplan
 
+
+      - name: Destroy on failure
+        if: failure()
+        working-directory: ./infra
+        run: terraform destroy -auto-approve
+
+
       - name: Obtener outputs de Terraform
         id: terraform-output
         working-directory: ./infra
