@@ -58,7 +58,9 @@ jobs:
 
       - name: Ejecutar pruebas unitarias
         # ⚠️ Si este paso falla, el workflow se detiene y NO se despliega
-        run: npm test
+        # Ejecuta solo pruebas unitarias (rápidas, sin navegador/webdriver)
+        # Las pruebas de Selenium se ejecutan por separado con: npm run test:selenium
+        run: npm run test:unit
         env:
           NODE_ENV: test
 
