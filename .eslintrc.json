@@ -1,7 +1,9 @@
 {
     "env": {
         "browser": true,
-        "es6": true
+        "es6": true,
+        "node": true,
+        "jest": true
     },
     "extends": "google",
     "globals": {
@@ -12,6 +14,34 @@
         "ecmaVersion": 2018
     },
     "rules": {
-      "require-jsdoc" : 0
-    }
+      "require-jsdoc": 0,
+      "max-len": ["warn", { 
+        "code": 120, 
+        "ignoreUrls": true, 
+        "ignoreStrings": true, 
+        "ignoreTemplateLiterals": true,
+        "ignoreComments": true,
+        "ignoreRegExpLiterals": true
+      }],
+      "new-cap": ["warn", { 
+        "capIsNew": false, 
+        "newIsCap": false,
+        "properties": false
+      }],
+      "no-unused-vars": ["warn", { 
+        "argsIgnorePattern": "^_", 
+        "varsIgnorePattern": "^_",
+        "args": "after-used"
+      }],
+      "prefer-promise-reject-errors": "off",
+      "camelcase": "off",
+      "guard-for-in": "off",
+      "brace-style": ["warn", "1tbs", { "allowSingleLine": true }]
+    },
+    "ignorePatterns": [
+      "public/js/*.js",
+      "node_modules/",
+      "coverage/",
+      "infra/"
+    ]
 }

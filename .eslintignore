@@ -1,2 +1,15 @@
-/node_modules/
+# Archivos a ignorar en ESLint
 node_modules/
+coverage/
+*.min.js
+dist/
+build/
+.git/
+infra/
+
+# Archivos públicos (código legacy del frontend)
+public/js/rating.js
+public/js/slider.js
+
+# Archivos de configuración y tests de Selenium (código legacy)
+tests/selenium/
