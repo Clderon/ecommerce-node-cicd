@@ -24,7 +24,6 @@ provider "aws" {
       Project     = "ecommerce-quantum"
       Environment = "temporary"
       ManagedBy   = "terraform"
-      CreatedAt   = timestamp()
     }
   }
 }
