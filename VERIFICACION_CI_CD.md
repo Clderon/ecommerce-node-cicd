@@ -2,7 +2,6 @@
 
 Esta guía te muestra exactamente qué hacer y cuánto tiempo esperar para verificar que tu CI/CD está funcionando correctamente.
 
-## ⏱️ Resumen de Tiempos
 
 | Fase | Tiempo Estimado | Qué Verificar |
 |------|-----------------|---------------|
@@ -13,19 +12,9 @@ Esta guía te muestra exactamente qué hacer y cuánto tiempo esperar para verif
 | **Job Deploy** | 10-15 min | Infraestructura creada |
 | **Verificación final** | 5 min | Aplicación accesible |
 
-**Total estimado:** 20-30 minutos desde el push hasta aplicación funcionando
-
----
 
 ## 📋 Paso 1: Configuración Inicial (15-30 minutos)
 
-### 1.1 Configurar Secrets en GitHub (5 minutos)
-
-**Tiempo:** 5 minutos
-
-**Pasos:**
-1. Ve a: `https://github.com/TU_USUARIO/TU_REPO/settings/secrets/actions`
-2. Agrega cada secret uno por uno:
    - `AWS_ACCESS_KEY_ID`
    - `AWS_SECRET_ACCESS_KEY`
    - `DB_PASSWORD`
