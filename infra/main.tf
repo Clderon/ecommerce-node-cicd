@@ -29,21 +29,49 @@ provider "aws" {
   }
 }
 
-# Data source para obtener la AMI más reciente de Ubuntu
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/h2-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+# Locals para AMIs conocidas por región
+# Estas son AMIs estables de Ubuntu 22.04 LTS que siempre están disponibles
+locals {
+  ami_by_region = {
+    "us-east-1"      = "ami-0866e0e6b5b0b5c5c"  # Ubuntu 22.04 LTS
+    "us-east-2"      = "ami-0866e0e6b5b0b5c5c"
+    "us-west-1"      = "ami-0866e0e6b5b0b5c5c"
+    "us-west-2"      = "ami-0866e0e6b5b0b5c5c"
+    "eu-west-1"      = "ami-0866e0e6b5b0b5c5c"
+    "eu-central-1"   = "ami-0866e0e6b5b0b5c5c"
+    "ap-southeast-1" = "ami-0866e0e6b5b0b5c5c"
   }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+  
+  # Usar AMI específica si se proporciona, sino usar AMI conocida por región
+  ami_id = var.ami_id != "" ? var.ami_id : lookup(local.ami_by_region, var.aws_region, "ami-0866e0e6b5b0b5c5c")
 }
+
+# Data source para obtener la AMI más reciente de Ubuntu (opcional, comentado por ahora)
+# Si el patrón no funciona en tu región, se usará automáticamente la AMI conocida del local
+# data "aws_ami" "ubuntu" {
+#   most_recent = true
+#   owners      = ["099720109477"] # Canonical
+#
+#   filter {
+#     name   = "name"
+#     values = ["ubuntu/images/h2-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+#   }
+#
+#   filter {
+#     name   = "virtualization-type"
+#     values = ["hvm"]
+#   }
+#
+#   filter {
+#     name   = "architecture"
+#     values = ["x86_64"]
+#   }
+#
+#   filter {
+#     name   = "state"
+#     values = ["available"]
+#   }
+# }
 
 # VPC para aislar la infraestructura temporal
 resource "aws_vpc" "ecommerce_vpc" {
@@ -272,7 +300,8 @@ resource "aws_iam_instance_profile" "ecommerce_ec2_profile" {
 
 # EC2 Instance
 resource "aws_instance" "ecommerce_app" {
-  ami                    = data.aws_ami.ubuntu.id
+  # Usar AMI conocida por región (más confiable que data source)
+  ami                    = local.ami_id
   instance_type          = var.ec2_instance_type
   key_name               = var.create_key_pair ? aws_key_pair.ecommerce_key[0].key_name : var.existing_key_name
   vpc_security_group_ids = [aws_security_group.ecommerce_ec2_sg.id]

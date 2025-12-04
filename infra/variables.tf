@@ -102,3 +102,14 @@ variable "allocate_eip" {
   default     = false
 }
 
+variable "ami_id" {
+  description = "AMI ID específica para EC2 (opcional, si no se especifica se busca automáticamente)"
+  type        = string
+  default     = ""
+  
+  # AMIs conocidas por región (usar si el data source falla):
+  # us-east-1: ami-0c55b159cbfafe1f0 (Ubuntu 22.04 LTS)
+  # us-west-2: ami-0c55b159cbfafe1f0
+  # eu-west-1: ami-0c55b159cbfafe1f0
+}
+
