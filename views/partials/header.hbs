@@ -1,0 +1,103 @@
+<header id="header">
+  <div class="nav-top">
+    <a href="/" class="logo" aria-label="Inicio - Ecommerce Quantum">Quantum</a>
+    <div class="search-box">
+      <form action="#" method="get">
+        <div class="inputs">
+          <input type="submit" id="submit-search" value="" aria-label="Buscar">
+          <input type="text" placeholder="Buscar productos" name="search-term" aria-label="Buscar productos">
+        </div>
+        <div class="select">
+          <select name="category" id="category-to-search" aria-label="Categoría">
+            <option value="" selected="selected">
+              Categoría >
+            </option>
+            {{# each categories }}
+              <option value={{this.idcategory}}>{{this.categoryname}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="actions-items">
+      <div class="action-item">
+        <img src="/img/icons/ic_shopping_cart.png" alt="Artículos en el carrito">
+        <a href="/cart"><span id="items-in-cart"></span>Artículos</a>
+      </div>
+      <div class="action-item">
+        <img src="/img/icons/ic_favorite_border.png" alt="Lista de deseos">
+        <a href="/wishlist">Lista de Deseos</a>
+      </div>
+      <div class="action-item">
+        <img src="/img/icons/ic_account_circle.png" alt="Iniciar sesión">
+        {{# if user }}
+          <div class="user-session">
+            <p class="username">{{user.username}}</p>
+            <a href="/log-out">Cerrar Sesión</a>
+          </div>
+        {{ else }}
+          <a href="/sign-in">Iniciar Sesión</a>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+  <div class="line-div"></div>
+  <div class="nav-bottom">
+    <div class="all-categories dropdown">
+      <div class="cta">
+        <img src="/img/icons/ic_menu.png" alt="Todas las categorías">
+        Todas las Categorías
+      </div>
+      <div class="submenu-dropdown">
+        {{# each categories }}
+          <a href="/filter/{{this.categoryname}}">{{this.categoryname}}</a>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="vertical-line"></div>
+
+    <ul class="links">
+      <li class="link"><a href="#">Super Ofertas</a></li>
+      <li class="link"><a href="#">Marcas Destacadas</a></li>
+      <li class="link"><a href="#">Colecciones</a></li>
+      <li class="link"><a href="#">Más Vendidos</a></li>
+    </ul>
+    <div class="config-site">
+      <div class="vertical-line"></div>
+      <div class="help-config config dropdown">
+        <div class="cta">
+          Ayuda
+          <img src="/img/icons/ic_arrow_down.png" alt="">
+        </div>
+        <div class="submenu-dropdown">
+          <a href="#">Foro</a>
+          <a href="#">Preguntas Frecuentes</a>
+        </div>
+      </div>
+      <div class="vertical-line"></div>
+      <div class="currency-config config dropdown">
+        <div class="cta">
+          USD
+          <img src="/img/icons/ic_arrow_down.png" alt="">
+        </div>
+        <div class="submenu-dropdown">
+          <a href="#">BRL</a>
+          <a href="#">XBT</a>
+        </div>
+      </div>
+      <div class="vertical-line"></div>
+      <div class="language-config config dropdown">
+        <div class="cta">
+          Idioma
+          <img src="/img/icons/ic_arrow_down.png" alt="">
+        </div>
+        <div class="submenu-dropdown">
+          <a href="#">Español</a>
+          <a href="#">Português</a>
+          <a href="#">English</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

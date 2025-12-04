@@ -1,0 +1,37 @@
+node_modules
+*/node_modules
+*/*/node_modules
+.env
+.env.local
+
+# Terraform
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfplan
+infra/crash.log
+infra/override.tf
+infra/override.tf.json
+infra/*_override.tf
+infra/*_override.tf.json
+
+# Docker
+*.log
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/

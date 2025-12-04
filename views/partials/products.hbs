@@ -1,0 +1,131 @@
+<section class="products">
+  <aside>
+    <div class="categories">
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_desktop_windows.png" class="category-img" alt="Computadoras">
+          <p class="category-name">Computadoras</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_desktop_windows.png" class="category-img" alt="Computadoras Apple">
+          <p class="category-name">Computadoras Apple</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_laptop.png" class="category-img" alt="Laptops">
+          <p class="category-name">Laptops</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_keyboard.png" class="category-img" alt="Teclados">
+          <p class="category-name">Teclados</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_memory.png" class="category-img" alt="Componentes">
+          <p class="category-name">Componentes de Computadora</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_speaker.png" class="category-img" alt="Accesorios">
+          <p class="category-name">Accesorios</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_phone_iphone.png" class="category-img" alt="Teléfonos">
+          <p class="category-name">Teléfonos Celulares</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_tv.png" class="category-img" alt="TV y Video">
+          <p class="category-name">TV y Video</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_videogame_asset.png" class="category-img" alt="Consolas">
+          <p class="category-name">Consolas de Videojuegos</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+      <a href="#" class="category">
+        <div class="label">
+          <img src="/img/icons/category/ic_watch.png" class="category-img" alt="Relojes">
+          <p class="category-name">Relojes</p>
+        </div>
+        <img src="/img/icons/ic_arrow_right.png" class="categoty-cta" alt="">
+      </a>
+    </div>
+    <div class="promo-code">
+      <div class="texts">
+        <p class="title">Mira Hacia el Cielo</p>
+        <p class="desc">Astronomía o Astrología</p>
+      </div>
+    </div>
+  </aside>
+  <main>
+    <nav>
+      <ul class="filters">
+        <li class="filter"><a href="/order/rating">Productos Populares</a></li>
+        <li class="filter"><a href="/order/low-price">Precio Bajo</a></li>
+        <li class="filter"><a href="/order/price">Precio Alto</a></li>
+      </ul>
+      <div class="display">
+        <div class="vertical-line"></div>
+        <a href="#" aria-label="Vista de cuadrícula">
+          <img src="/img/icons/ic_view_grid.png" alt="Vista de cuadrícula">
+        </a>
+        <div class="vertical-line"></div>
+        <a href="#" aria-label="Vista de lista">
+          <img src="/img/icons/ic_view_list.png" alt="Vista de lista">
+        </a>
+      </div>
+    </nav>
+    <div class="products-list">
+      {{# each products}}
+        <form class="product">
+          <div class="labels">
+            <p class="promotion">Oferta</p>
+            <div class="actions">
+              <a href="/add-to-cart/{{this.id}}" class="add-list" aria-label="Agregar a lista">
+                <img src="/img/icons/ic_add_list.png" alt="Agregar a lista">
+              </a>
+              <a href="/add-to-favorite/{{this.id}}" class="add-favorites" aria-label="Agregar a favoritos">
+                <img src="/img/icons/ic_favorite_border.png" alt="Agregar a favoritos">
+              </a>
+            </div>
+          </div>
+          <img src="/img/products/{{this.img_url}}" alt="{{this.name}}" class="product-img">
+          <p class="name">{{this.name}}</p>
+          {{!-- Rating System --}}
+          <div id="rating" data-rating="{{this.rating}}"></div>
+
+          <div class="price">
+            <p class="price-value">$ {{this.price}}</p>
+            <a href="/add-to-cart/{{this.id}}" aria-label="Agregar al carrito">
+              <img src="/img/icons/ic_shopping_cart.png" alt="Agregar al carrito">
+            </a>
+          </div>
+        </form>
+      {{/each}}
+    </div>
+  </main>
+</section>
+
+<script src="/js/rating.js"></script>

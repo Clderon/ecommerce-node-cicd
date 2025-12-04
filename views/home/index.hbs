@@ -1,0 +1,37 @@
+<section class="slider img-slider1" id="slider">
+  <button class="go-back-slider btn-slider" id="go-back-slider" onclick="previusSlider()" aria-label="Anterior"><</button>
+  <div class="current-slider">
+    <p class="text-slider">El Universo a Través de los Ojos de un Niño</p>
+    <div class="slider-tabs" id="slider-tabs" role="tablist">
+      <span class="tab current-tab" role="tab" aria-selected="true"></span>
+      <span class="tab" role="tab" aria-selected="false"></span>
+      <span class="tab" role="tab" aria-selected="false"></span>
+    </div>
+  </div>
+  <button class="go-next-slider btn-slider" id="go-next-slider" onclick="nextSlider()" aria-label="Siguiente">></button>
+</section>
+
+<section class="news">
+  <div class="first">
+    <p class="title">Astronomía o Astrología</p>
+    <img src="img/news/headphone.png" alt="Auriculares">
+  </div>
+  <div class="second">
+    <p class="title">Lo Básico de Comprar un Telescopio</p>
+    <p class="desc">Astronomía o Astrología</p>
+  </div>
+  <div class="third">
+    <div class="third-anns">
+      <img src="img/news/pencil.png" alt="Lápiz">
+      <p class="title">Cómo Obtener Publicidad Gratuita para tu Negocio</p>
+    </div>
+    <div class="third-anns">
+      <img src="img/news/watches.png" alt="Relojes">
+      <p class="title">Cómo Difieren las TVs de Plasma y LCD</p>
+    </div>
+  </div>
+</section>
+
+{{> products }}
+
+<script src="js/slider.js"></script>

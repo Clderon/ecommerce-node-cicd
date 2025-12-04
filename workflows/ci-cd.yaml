@@ -1,0 +1,256 @@
+# ============================================================================
+# CI/CD con Infraestructura Temporal
+# 
+# REQUISITO: "Hacer despliegue automático incluyendo las pruebas automáticas.
+#            Se debe desplegar siempre y cuando hayan pasado las pruebas."
+#
+# ✅ CUMPLIMIENTO:
+# - El workflow se ACTIVA automáticamente con cada push a main
+# - PRIMERO ejecuta las pruebas automáticas (job CI)
+# - SOLO si las pruebas PASAN, entonces se despliega (jobs Build + Deploy)
+# - Si las pruebas FALLAN, el workflow se DETIENE y NO se despliega
+#
+# Flujo: Push → CI (pruebas) → [SI PASAN] → Build → Deploy
+#        Push → CI (pruebas) → [SI FALLAN] → ❌ STOP (NO despliega)
+# ============================================================================
+
+name: CI/CD with Temporary Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      destroy_infrastructure:
+        description: 'Destroy infrastructure after deployment'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ecommerce-quantum
+  DOCKER_IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # ============================================
+  # CI: Continuous Integration
+  # REQUISITO: El despliegue SOLO ocurre si las pruebas pasan
+  # Este job ejecuta las pruebas automáticas. Si fallan, el workflow se detiene.
+  # ============================================
+  ci:
+    name: Continuous Integration - Pruebas Automáticas
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas unitarias
+        # ⚠️ Si este paso falla, el workflow se detiene y NO se despliega
+        run: npm test
+        env:
+          NODE_ENV: test
+
+      - name: Verificar estilo con ESLint
+        # ⚠️ Si este paso falla, el workflow se detiene y NO se despliega
+        run: npx eslint . --max-warnings 0
+
+      - name: Construir artefacto
+        run: |
+          echo "✅ CI completado exitosamente - Las pruebas pasaron"
+          echo "✅ El despliegue puede continuar"
+          echo "SHA: ${{ github.sha }}"
+
+  # ============================================
+  # Build: Construir imagen Docker
+  # ⚠️ IMPORTANTE: Este job SOLO se ejecuta si CI pasó (needs: ci)
+  # Si las pruebas fallaron, este job NO se ejecuta y el despliegue NO ocurre
+  # ============================================
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    # ✅ CONDICIÓN: Solo se ejecuta si las pruebas pasaron
+    needs: ci
+    outputs:
+      image: ${{ steps.image-output.outputs.image }}
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login a Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Crear repositorio ECR si no existe
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --image-scanning-configuration scanOnPush=true
+
+      - name: Construir imagen Docker
+        run: |
+          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} .
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Subir imagen a ECR
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Guardar imagen ECR para CD
+        id: image-output
+        run: |
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}"
+          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "✅ Imagen construida: $IMAGE_URI"
+
+  # ============================================
+  # CD: Continuous Deployment con Terraform
+  # ⚠️ IMPORTANTE: Este job SOLO se ejecuta si Build pasó (needs: build)
+  # Y Build solo se ejecuta si CI pasó (pruebas exitosas)
+  # REQUISITO CUMPLIDO: "Se despliega siempre y cuando hayan pasado las pruebas"
+  # ============================================
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    # ✅ CONDICIÓN: Solo se ejecuta si Build pasó (que requiere CI exitoso)
+    # Esto garantiza que el despliegue SOLO ocurre si las pruebas pasaron
+    needs: build
+    environment:
+      name: temporary-infrastructure
+      url: ${{ steps.terraform-output.outputs.application_url }}
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: ./infra
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./infra
+        run: |
+          terraform plan \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="docker_image=${{ needs.build.outputs.image }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
+            -var="db_username=${{ secrets.DB_USERNAME }}" \
+            -var="db_name=${{ secrets.DB_NAME }}" \
+            -out=tfplan
+        continue-on-error: false
+
+      - name: Terraform Apply
+        working-directory: ./infra
+        run: terraform apply -auto-approve tfplan
+
+      - name: Obtener outputs de Terraform
+        id: terraform-output
+        working-directory: ./infra
+        run: |
+          echo "application_url=$(terraform output -raw application_url)" >> $GITHUB_OUTPUT
+          echo "ec2_instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+          echo "rds_endpoint=$(terraform output -raw rds_endpoint)" >> $GITHUB_OUTPUT
+
+      - name: Esperar a que la aplicación esté lista
+        run: |
+          echo "Esperando a que la aplicación esté disponible..."
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -f -s ${{ steps.terraform-output.outputs.application_url }} > /dev/null 2>&1; then
+              echo "✅ Aplicación disponible en ${{ steps.terraform-output.outputs.application_url }}"
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+            echo "Intento $attempt/$max_attempts: Aplicación no disponible aún, esperando 10 segundos..."
+            sleep 10
+          done
+          echo "⚠️ La aplicación no respondió después de $max_attempts intentos"
+          exit 1
+
+      - name: Mostrar información de despliegue
+        run: |
+          echo "🚀 Despliegue completado"
+          echo "📍 URL de la aplicación: ${{ steps.terraform-output.outputs.application_url }}"
+          echo "🖥️  Instancia EC2: ${{ steps.terraform-output.outputs.ec2_instance_id }}"
+          echo "🗄️  RDS Endpoint: ${{ steps.terraform-output.outputs.rds_endpoint }}"
+
+  # ============================================
+  # Destroy: Destruir infraestructura
+  # ============================================
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.destroy_infrastructure == 'true' ||
+      github.event_name == 'push' && 
+      contains(github.event.head_commit.message, '[destroy]')
+    needs: [build, deploy]
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: ./infra
+        run: terraform init
+
+      - name: Terraform Destroy
+        working-directory: ./infra
+        run: |
+          terraform destroy -auto-approve \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="docker_image=${{ needs.build.outputs.image }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
+            -var="db_username=${{ secrets.DB_USERNAME }}" \
+            -var="db_name=${{ secrets.DB_NAME }}"
+
+      - name: Confirmar destrucción
+        run: |
+          echo "🧹 Infraestructura destruida exitosamente"
+          echo "✅ Solo quedan artefactos en ECR y datos en almacenamiento externo (si aplica)"

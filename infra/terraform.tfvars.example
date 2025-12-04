@@ -1,0 +1,32 @@
+# Ejemplo de archivo terraform.tfvars
+# Copia este archivo a terraform.tfvars y completa los valores
+# NO commitees terraform.tfvars al repositorio (debe estar en .gitignore)
+
+aws_region = "us-east-1"
+
+# Configuración de red
+vpc_cidr              = "10.0.0.0/16"
+public_subnet_cidr    = "10.0.1.0/24"
+private_subnet_cidr_1 = "10.0.2.0/24"
+private_subnet_cidr_2 = "10.0.3.0/24"
+
+# Configuración de EC2
+ec2_instance_type = "t3.micro"
+allocate_eip      = false
+
+# Configuración de RDS
+db_instance_class    = "db.t3.micro"
+db_allocated_storage = 20
+db_name              = "equantom"
+db_username          = "admin"
+db_password           = "CHANGE_ME_SECURE_PASSWORD"
+
+# Configuración de la aplicación
+app_port    = 3000
+docker_image = "your-ecr-repo/ecommerce-quantum:latest"
+
+# Configuración de SSH
+create_key_pair  = false
+existing_key_name = "your-existing-key-name"
+# ec2_public_key = "ssh-rsa AAAAB3NzaC1yc2E..." # Solo si create_key_pair = true
+
