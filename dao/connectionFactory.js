@@ -19,7 +19,7 @@ class ConnectionFactory {
 
   /**
    * Crea una nueva conexión a la base de datos
-   * @returns {mysql.Connection} - Conexión a MySQL
+   * @return {mysql.Connection} - Conexión a MySQL
    */
   createConnection() {
     const connection = mysql.createConnection({
@@ -34,7 +34,7 @@ class ConnectionFactory {
 
   /**
    * Crea un pool de conexiones
-   * @returns {mysql.Pool} - Pool de conexiones MySQL
+   * @return {mysql.Pool} - Pool de conexiones MySQL
    */
   createPool() {
     return mysql.createPool(this.config);

@@ -12,7 +12,7 @@ module.exports = (app) => {
 
     res.render('sign/up', {
       title: 'Crear Cuenta',
-      success, 
+      success,
       warning,
       csrfToken: req.csrfToken(),
     });

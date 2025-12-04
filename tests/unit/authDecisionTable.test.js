@@ -1,6 +1,6 @@
 /**
  * Pruebas Unitarias - AuthDecisionTable
- * 
+ *
  * Pruebas rápidas que evalúan la lógica de autenticación
  * sin necesidad de navegador, webdriver o base de datos real.
  */
@@ -20,7 +20,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: false,
         passwordCorrect: false,
         userSessionExists: false,
-        validationErrors: true // Errores de validación
+        validationErrors: true, // Errores de validación
       };
 
       const result = authTable.evaluateLogin(context);
@@ -38,7 +38,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: false,
         passwordCorrect: false,
         userSessionExists: true, // Sesión ya existe
-        validationErrors: false
+        validationErrors: false,
       };
 
       const result = authTable.evaluateLogin(context);
@@ -56,7 +56,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: true,
         passwordCorrect: true,
         userSessionExists: false,
-        validationErrors: false
+        validationErrors: false,
       };
 
       const result = authTable.evaluateLogin(context);
@@ -74,7 +74,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: true,
         passwordCorrect: false, // Contraseña incorrecta
         userSessionExists: false,
-        validationErrors: false
+        validationErrors: false,
       };
 
       const result = authTable.evaluateLogin(context);
@@ -92,7 +92,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: false, // Email no existe
         passwordCorrect: false,
         userSessionExists: false,
-        validationErrors: false
+        validationErrors: false,
       };
 
       const result = authTable.evaluateLogin(context);
@@ -110,7 +110,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: true,
         passwordCorrect: true,
         userSessionExists: false,
-        validationErrors: true // Validación tiene prioridad más alta
+        validationErrors: true, // Validación tiene prioridad más alta
       };
 
       const result = authTable.evaluateLogin(context);
@@ -123,7 +123,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: true,
         passwordCorrect: true,
         userSessionExists: true, // Sesión activa tiene prioridad sobre login
-        validationErrors: false
+        validationErrors: false,
       };
 
       const result = authTable.evaluateLogin(context);
@@ -144,7 +144,7 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
         emailExists: undefined,
         passwordCorrect: undefined,
         userSessionExists: undefined,
-        validationErrors: undefined
+        validationErrors: undefined,
       };
 
       const result = authTable.evaluateLogin(context);

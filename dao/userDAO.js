@@ -11,46 +11,46 @@ class userDAO {
    * @param {String} username - Nombre de usuario
    * @param {String} email - Email del usuario
    * @param {String} password - Contraseña sin encriptar
-   * @returns {Promise} - Promise que resuelve con mensaje de éxito
+   * @return {Promise} - Promise que resuelve con mensaje de éxito
    */
   saveUser(username, email, password) {
     return new Promise((resolve, reject) => {
       // Verificar si el email ya existe
       this.connection.query(
-        'SELECT * FROM users WHERE email = ?',
-        [email],
-        (err, results) => {
-          if (err) {
-            console.error('Error verificando email:', err);
-            return reject('Error de base de datos');
-          }
-
-          if (results.length > 0) {
-            return reject('¡El correo electrónico ya está registrado!');
-          }
-
-          // Encriptar la contraseña
-          bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
-            if (hashErr) {
-              console.error('Error hashing password:', hashErr);
-              return reject('Error procesando la contraseña');
+          'SELECT * FROM users WHERE email = ?',
+          [email],
+          (err, results) => {
+            if (err) {
+              console.error('Error verificando email:', err);
+              return reject('Error de base de datos');
             }
 
-            // Insertar el nuevo usuario
-            this.connection.query(
-              'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-              [username, email, hashedPassword],
-              (insertErr, insertResults) => {
-                if (insertErr) {
-                  console.error('Error insertando usuario:', insertErr);
-                  return reject('Error al crear el usuario');
-                }
+            if (results.length > 0) {
+              return reject('¡El correo electrónico ya está registrado!');
+            }
 
-                resolve('¡Usuario creado exitosamente!');
+            // Encriptar la contraseña
+            bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
+              if (hashErr) {
+                console.error('Error hashing password:', hashErr);
+                return reject('Error procesando la contraseña');
               }
-            );
-          });
-        }
+
+              // Insertar el nuevo usuario
+              this.connection.query(
+                  'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+                  [username, email, hashedPassword],
+                  (insertErr, insertResults) => {
+                    if (insertErr) {
+                      console.error('Error insertando usuario:', insertErr);
+                      return reject('Error al crear el usuario');
+                    }
+
+                    resolve('¡Usuario creado exitosamente!');
+                  },
+              );
+            });
+          },
       );
     });
   }
@@ -59,42 +59,42 @@ class userDAO {
    * Valida las credenciales de login de un usuario
    * @param {String} email - Email del usuario
    * @param {String} password - Contraseña sin encriptar
-   * @returns {Promise} - Promise que resuelve con el usuario si las credenciales son correctas
+   * @return {Promise} - Promise que resuelve con el usuario si las credenciales son correctas
    */
   login(email, password) {
     return new Promise((resolve, reject) => {
       // Buscar el usuario por email
       this.connection.query(
-        'SELECT * FROM users WHERE email = ?',
-        [email],
-        (err, results) => {
-          if (err) {
-            console.error('Error en query de login:', err);
-            return reject('Database error');
-          }
-
-          if (results.length === 0) {
-            return reject('Email is not registered!');
-          }
-
-          const user = results[0];
-
-          // Verificar la contraseña
-          bcrypt.compare(password, user.password, (compareErr, isMatch) => {
-            if (compareErr) {
-              console.error('Error comparando contraseña:', compareErr);
-              return reject('Error verifying password');
+          'SELECT * FROM users WHERE email = ?',
+          [email],
+          (err, results) => {
+            if (err) {
+              console.error('Error en query de login:', err);
+              return reject('Database error');
             }
 
-            if (!isMatch) {
-              return reject('Password is not correct!');
+            if (results.length === 0) {
+              return reject('Email is not registered!');
             }
 
-            // Si todo está bien, retornar el usuario (sin la contraseña)
-            const { password: _, ...userWithoutPassword } = user;
-            resolve(userWithoutPassword);
-          });
-        }
+            const user = results[0];
+
+            // Verificar la contraseña
+            bcrypt.compare(password, user.password, (compareErr, isMatch) => {
+              if (compareErr) {
+                console.error('Error comparando contraseña:', compareErr);
+                return reject('Error verifying password');
+              }
+
+              if (!isMatch) {
+                return reject('Password is not correct!');
+              }
+
+              // Si todo está bien, retornar el usuario (sin la contraseña)
+              const {password: _, ...userWithoutPassword} = user;
+              resolve(userWithoutPassword);
+            });
+          },
       );
     });
   }
@@ -102,26 +102,26 @@ class userDAO {
   /**
    * Obtiene un usuario por email
    * @param {String} email - Email del usuario
-   * @returns {Promise} - Promise que resuelve con el usuario
+   * @return {Promise} - Promise que resuelve con el usuario
    */
   getUserByEmail(email) {
     return new Promise((resolve, reject) => {
       this.connection.query(
-        'SELECT * FROM users WHERE email = ?',
-        [email],
-        (err, results) => {
-          if (err) {
-            return reject(err);
-          }
+          'SELECT * FROM users WHERE email = ?',
+          [email],
+          (err, results) => {
+            if (err) {
+              return reject(err);
+            }
 
-          if (results.length === 0) {
-            return resolve(null);
-          }
+            if (results.length === 0) {
+              return resolve(null);
+            }
 
-          const user = results[0];
-          const { password: _, ...userWithoutPassword } = user;
-          resolve(userWithoutPassword);
-        }
+            const user = results[0];
+            const {password: _, ...userWithoutPassword} = user;
+            resolve(userWithoutPassword);
+          },
       );
     });
   }

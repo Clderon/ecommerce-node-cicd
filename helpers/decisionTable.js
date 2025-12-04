@@ -1,6 +1,6 @@
 /**
  * Tabla de Decisión Genérica
- * 
+ *
  * Implementa un sistema de tabla de decisión que evalúa condiciones
  * y retorna acciones correspondientes según las reglas definidas.
  */
@@ -28,7 +28,7 @@ class DecisionTable {
   /**
    * Evalúa las condiciones y retorna la primera regla que coincida
    * @param {Object} context - Contexto con los valores actuales de las condiciones
-   * @returns {Object} - Objeto con matched (boolean), rule (número de regla), y actions (acciones)
+   * @return {Object} - Objeto con matched (boolean), rule (número de regla), y actions (acciones)
    */
   evaluate(context) {
     for (let i = 0; i < this.rules.length; i++) {
@@ -56,7 +56,7 @@ class DecisionTable {
    * Verifica si las condiciones de una regla se cumplen con el contexto dado
    * @param {Object} ruleConditions - Condiciones de la regla
    * @param {Object} context - Contexto actual
-   * @returns {Boolean} - true si todas las condiciones se cumplen
+   * @return {Boolean} - true si todas las condiciones se cumplen
    */
   _matchesConditions(ruleConditions, context) {
     for (const key in ruleConditions) {

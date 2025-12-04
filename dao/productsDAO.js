@@ -10,7 +10,7 @@ class productsDAO {
                 (err, result) => {
                   if (err) return reject(err);
                   return resolve(result);
-                }
+                },
             );
       }
       // End Queries for limits
@@ -20,7 +20,7 @@ class productsDAO {
                 (err, result) => {
                   if (err) return reject(err);
                   return resolve(result);
-                }
+                },
             );
       }
     });

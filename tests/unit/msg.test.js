@@ -1,6 +1,6 @@
 /**
  * Pruebas Unitarias - Mensajes (msg.js)
- * 
+ *
  * Pruebas rápidas que evalúan la lógica de mensajes
  * sin necesidad de navegador o base de datos.
  */
@@ -26,12 +26,12 @@ describe('msg - Pruebas Unitarias', () => {
       const mockReq = {
         session: {
           'success': 'Mensaje de éxito',
-          'warning': null
-        }
+          'warning': null,
+        },
       };
-      
+
       const result = msg(mockReq);
-      
+
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('warning');
       expect(result.success).toBe('Mensaje de éxito');

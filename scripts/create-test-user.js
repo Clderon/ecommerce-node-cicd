@@ -1,6 +1,6 @@
 /**
  * Script para crear el usuario de prueba usado en las pruebas de Selenium
- * 
+ *
  * Uso: node scripts/create-test-user.js
  */
 
@@ -39,19 +39,19 @@ async function createTestUser() {
     // Verificar si el usuario ya existe
     const existingUser = await new Promise((resolve, reject) => {
       connection.query(
-        'SELECT * FROM users WHERE email = ?',
-        [testUser.email],
-        (err, results) => {
-          if (err) return reject(err);
-          resolve(results);
-        }
+          'SELECT * FROM users WHERE email = ?',
+          [testUser.email],
+          (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+          },
       );
     });
 
     if (existingUser.length > 0) {
       console.log('⚠️  El usuario de prueba ya existe');
       console.log('   Email:', testUser.email);
-      
+
       // Actualizar la contraseña por si acaso
       const hashedPassword = await new Promise((resolve, reject) => {
         bcrypt.hash(testUser.password, 10, (err, hash) => {
@@ -62,12 +62,12 @@ async function createTestUser() {
 
       await new Promise((resolve, reject) => {
         connection.query(
-          'UPDATE users SET password = ? WHERE email = ?',
-          [hashedPassword, testUser.email],
-          (err) => {
-            if (err) return reject(err);
-            resolve();
-          }
+            'UPDATE users SET password = ? WHERE email = ?',
+            [hashedPassword, testUser.email],
+            (err) => {
+              if (err) return reject(err);
+              resolve();
+            },
         );
       });
 
@@ -83,12 +83,12 @@ async function createTestUser() {
 
       await new Promise((resolve, reject) => {
         connection.query(
-          'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-          [testUser.username, testUser.email, hashedPassword],
-          (err) => {
-            if (err) return reject(err);
-            resolve();
-          }
+            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+            [testUser.username, testUser.email, hashedPassword],
+            (err) => {
+              if (err) return reject(err);
+              resolve();
+            },
         );
       });
 

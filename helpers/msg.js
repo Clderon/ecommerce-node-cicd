@@ -6,7 +6,7 @@ function msg(req) {
   req.session['warning'] = null;
 
   // Retornar un objeto con ambos valores
-  return { success, warning };
+  return {success, warning};
 }
 
 module.exports = () => msg;

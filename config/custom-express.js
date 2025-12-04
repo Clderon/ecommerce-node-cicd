@@ -2,7 +2,7 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const consign = require('consign');
-const { engine } = require('express-handlebars');
+const {engine} = require('express-handlebars');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const csrf = require('csurf');
@@ -19,7 +19,7 @@ class AppController {
   }
 
   middlewares() {
-    this.app.use(bodyParser.urlencoded({ extended: true }));
+    this.app.use(bodyParser.urlencoded({extended: true}));
     this.app.use(bodyParser.json());
     this.app.use(cookieParser());
     this.app.use(session({
@@ -29,14 +29,14 @@ class AppController {
       cookie: {
         secure: false, // Cambiar a true en producción con HTTPS
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
       },
       // Forzar el guardado de la sesión antes de enviar la respuesta
-      rolling: true
+      rolling: true,
     }));
     this.app.use(cors());
-    this.app.use(csrf({ cookie: true }));
-    
+    this.app.use(csrf({cookie: true}));
+
     // express-validator v5 - se debe usar como middleware para agregar métodos a req
     const validator = require('express-validator');
     this.app.use(validator());
@@ -63,7 +63,7 @@ class AppController {
     this.app.get('/', (req, res) => {
       const success = req.session['success'];
       const warning = req.session['warning'];
-      
+
       // Limpiar mensajes de sesión después de mostrarlos
       delete req.session['success'];
       delete req.session['warning'];
@@ -75,39 +75,39 @@ class AppController {
 
       Promise.all([
         CategoriesDao.list(),
-        ProductsDao.list()
+        ProductsDao.list(),
       ])
-        .then(([categories, products]) => {
-          connection.end();
-          res.render('home/index', {
-            title: 'Inicio',
-            success,
-            warning,
-            user: req.session['user'] || null,
-            categories: categories || [],
-            products: products || [],
+          .then(([categories, products]) => {
+            connection.end();
+            res.render('home/index', {
+              title: 'Inicio',
+              success,
+              warning,
+              user: req.session['user'] || null,
+              categories: categories || [],
+              products: products || [],
+            });
+          })
+          .catch((err) => {
+            console.error('Error cargando datos:', err);
+            connection.end();
+            res.render('home/index', {
+              title: 'Inicio',
+              success,
+              warning,
+              user: req.session['user'] || null,
+              categories: [],
+              products: [],
+            });
           });
-        })
-        .catch((err) => {
-          console.error('Error cargando datos:', err);
-          connection.end();
-          res.render('home/index', {
-            title: 'Inicio',
-            success,
-            warning,
-            user: req.session['user'] || null,
-            categories: [],
-            products: [],
-          });
-        });
     });
 
     // Cargar rutas y DAOs usando consign
     consign()
-      .include('routes')
-      .then('dao')
-      .then('helpers')
-      .into(this.app);
+        .include('routes')
+        .then('dao')
+        .then('helpers')
+        .into(this.app);
 
     // Middleware para cargar categorías en todas las vistas (después de cargar DAOs)
     // Se ejecuta después de que consign haya cargado los DAOs
@@ -121,19 +121,19 @@ class AppController {
       try {
         const connection = this.app.dao.connectionFactory();
         const CategoriesDao = new this.app.dao.categoriesDAO(connection);
-        
+
         CategoriesDao.list()
-          .then((categories) => {
-            res.locals.categories = categories || [];
-            connection.end();
-            next();
-          })
-          .catch((err) => {
-            console.error('Error cargando categorías:', err);
-            res.locals.categories = [];
-            if (connection && connection.end) connection.end();
-            next();
-          });
+            .then((categories) => {
+              res.locals.categories = categories || [];
+              connection.end();
+              next();
+            })
+            .catch((err) => {
+              console.error('Error cargando categorías:', err);
+              res.locals.categories = [];
+              if (connection && connection.end) connection.end();
+              next();
+            });
       } catch (err) {
         console.error('Error en middleware de categorías:', err);
         res.locals.categories = [];
@@ -159,19 +159,19 @@ class AppController {
       }
       next(err);
     });
-    
+
     // Manejo de errores 404
     this.app.use((req, res, next) => {
       return res.status(404)
-        .render('errors/404', { title: 'Page not Found - 404' });
+          .render('errors/404', {title: 'Page not Found - 404'});
     });
-    
+
     // Manejo de errores 500 (habilitado para evitar crashes)
     this.app.use((err, req, res, next) => {
       console.error('❌ Error no manejado:', err);
       console.error('Stack:', err.stack);
       return res.status(500)
-        .render('errors/500', { title: 'Error - 500' });
+          .render('errors/500', {title: 'Error - 500'});
     });
   }
 }

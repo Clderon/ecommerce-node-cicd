@@ -22,7 +22,7 @@ module.exports = (app) => {
 
     res.render('sign/in', {
       title: 'Iniciar Sesión',
-      success, 
+      success,
       warning,
       csrfToken: req.csrfToken(),
     });
@@ -30,9 +30,9 @@ module.exports = (app) => {
 
   app.post('/sign-in', async (req, res) => {
     console.log('📥 POST /sign-in recibido');
-    console.log('   Body:', { email: req.body.email, password: req.body.password ? '***' : 'undefined' });
+    console.log('   Body:', {email: req.body.email, password: req.body.password ? '***' : 'undefined'});
     console.log('   CSRF Token:', req.body._csrf ? 'presente' : 'ausente');
-    
+
     const email = req.body.email;
     const password = req.body.password;
 
@@ -41,7 +41,7 @@ module.exports = (app) => {
     req.checkBody('password', 'La contraseña debe tener al menos 4 caracteres')
         .notEmpty().isLength({min: 4});
     const errorsInValidation = req.validationErrors();
-    
+
     if (errorsInValidation) {
       console.log('⚠️  Errores de validación:', errorsInValidation);
     }
@@ -95,7 +95,7 @@ module.exports = (app) => {
       let user = null;
       let emailExists = false;
       let passwordCorrect = false;
-      
+
       try {
         // Intentar hacer login - esto valida email y contraseña
         user = await UserDao.login(email, password);
@@ -105,7 +105,7 @@ module.exports = (app) => {
       } catch (loginErr) {
         // El UserDAO.login lanza error si el email no existe o la contraseña es incorrecta
         const errorMessage = loginErr.toString();
-        
+
         if (errorMessage.includes('Email is not registered')) {
           emailExists = false;
           passwordCorrect = false;
@@ -117,7 +117,7 @@ module.exports = (app) => {
           throw loginErr;
         }
       }
-      
+
       // Si el login fue exitoso, obtener el usuario completo para la sesión
       if (emailExists && passwordCorrect && !user) {
         try {
@@ -161,7 +161,7 @@ module.exports = (app) => {
       // Ejecutar acciones según la tabla de decisión
       if (decision.actions.success) {
         req.session['success'] = decision.actions.successMessage;
-        
+
         if (decision.actions.createSession && user) {
           req.session['user'] = {
             id: user.id || null,
@@ -175,12 +175,12 @@ module.exports = (app) => {
       } else {
         req.session['warning'] = decision.actions.error;
       }
-      
+
       // Cerrar la conexión a la base de datos antes de redirigir
       if (connection) {
         connection.end();
       }
-      
+
       // Guardar la sesión y redirigir
       console.log('💾 Preparando redirección...');
       console.log('   Session ID:', req.sessionID);
@@ -188,79 +188,78 @@ module.exports = (app) => {
       console.log('   Redirect a:', decision.actions.redirect);
       console.log('   Response headers antes de redirect:', {
         'content-type': res.getHeader('content-type'),
-        'location': res.getHeader('location')
+        'location': res.getHeader('location'),
       });
-      
+
       // Verificar que la respuesta no se haya enviado ya
       if (res.headersSent) {
         console.error('❌ ERROR: La respuesta ya fue enviada!');
         return;
       }
-      
+
       // Marcar la sesión como modificada para forzar el guardado
       req.session.touch();
-      
+
       // express-session guarda automáticamente la sesión antes de enviar la respuesta
       // Redirigir directamente - express-session se encargará de guardar la sesión
       console.log('✅ Login exitoso - Redirecting to:', decision.actions.redirect);
       console.log('   Enviando respuesta 302...');
-      
+
       // Redirigir - express-session guardará la sesión automáticamente
       res.redirect(302, decision.actions.redirect);
-      
+
       console.log('✅ Redirect enviado');
       console.log('   Response headers después de redirect:', {
         'statusCode': res.statusCode,
-        'location': res.getHeader('location')
+        'location': res.getHeader('location'),
+      });
+    } catch (dbError) {
+      // Manejar errores de base de datos
+      console.error('Error en proceso de login:', dbError);
+
+      // Si es un error conocido del UserDAO, usar esos mensajes
+      const errorMessage = dbError.toString();
+      if (errorMessage.includes('Email is not registered')) {
+        emailExists = false;
+        passwordCorrect = false;
+      } else if (errorMessage.includes('Password is not correct')) {
+        emailExists = true;
+        passwordCorrect = false;
+      } else {
+        // Error de conexión o base de datos
+        connection.end();
+        req.session['warning'] = 'Database connection error. Please try again later.';
+        req.session.save((err) => {
+          if (err) console.error('Error guardando sesión:', err);
+          res.redirect('/sign-in');
+        });
+        return;
+      }
+
+      // Aplicar tabla de decisión con el error conocido
+      decision = authDecisionTable.evaluateLogin({
+        userSessionExists: false,
+        validationErrors: false,
+        emailExists,
+        passwordCorrect,
       });
 
-    } catch (dbError) {
-        // Manejar errores de base de datos
-        console.error('Error en proceso de login:', dbError);
-        
-        // Si es un error conocido del UserDAO, usar esos mensajes
-        const errorMessage = dbError.toString();
-        if (errorMessage.includes('Email is not registered')) {
-          emailExists = false;
-          passwordCorrect = false;
-        } else if (errorMessage.includes('Password is not correct')) {
-          emailExists = true;
-          passwordCorrect = false;
-        } else {
-          // Error de conexión o base de datos
-          connection.end();
-          req.session['warning'] = 'Database connection error. Please try again later.';
-          req.session.save((err) => {
-            if (err) console.error('Error guardando sesión:', err);
-            res.redirect('/sign-in');
-          });
-          return;
+      if (decision.matched && decision.actions.error) {
+        req.session['warning'] = decision.actions.error;
+      } else {
+        req.session['warning'] = 'An error occurred during login';
+      }
+
+      connection.end();
+
+      // Guardar la sesión antes de redirigir
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Error guardando sesión:', err);
         }
-
-        // Aplicar tabla de decisión con el error conocido
-        decision = authDecisionTable.evaluateLogin({
-          userSessionExists: false,
-          validationErrors: false,
-          emailExists,
-          passwordCorrect,
-        });
-
-        if (decision.matched && decision.actions.error) {
-          req.session['warning'] = decision.actions.error;
-        } else {
-          req.session['warning'] = 'An error occurred during login';
-        }
-
-        connection.end();
-        
-        // Guardar la sesión antes de redirigir
-        req.session.save((err) => {
-          if (err) {
-            console.error('❌ Error guardando sesión:', err);
-          }
-          console.log('❌ Login fallido - Redirecting to:', decision.actions.redirect || '/sign-in');
-          res.redirect(decision.actions.redirect || '/sign-in');
-        });
+        console.log('❌ Login fallido - Redirecting to:', decision.actions.redirect || '/sign-in');
+        res.redirect(decision.actions.redirect || '/sign-in');
+      });
     }
   });
 };
