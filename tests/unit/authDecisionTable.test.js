@@ -14,21 +14,21 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
     authTable = new AuthDecisionTable();
   });
 
-  describe('Regla 1: Login Exitoso', () => {
-    test('debe retornar regla 1 cuando email existe y contraseña es correcta', () => {
+  describe('Regla 1: Errores de validación', () => {
+    test('debe retornar regla 1 cuando hay errores de validación', () => {
       const context = {
-        emailExists: true,
-        passwordCorrect: true,
+        emailExists: false,
+        passwordCorrect: false,
         userSessionExists: false,
-        validationErrors: false
+        validationErrors: true // Errores de validación
       };
 
       const result = authTable.evaluateLogin(context);
 
       expect(result.matched).toBe(true);
       expect(result.rule).toBe(1);
-      expect(result.actions.redirect).toBe('/');
-      expect(result.actions.successMessage || result.actions.error).toBeDefined();
+      expect(result.actions.redirect).toBe('/sign-in');
+      expect(result.actions.error).toMatch(/validación|validation|error/i);
     });
   });
 
@@ -50,21 +50,21 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
     });
   });
 
-  describe('Regla 3: Errores de validación', () => {
-    test('debe retornar regla 3 cuando hay errores de validación', () => {
+  describe('Regla 3: Login Exitoso', () => {
+    test('debe retornar regla 3 cuando email existe y contraseña es correcta', () => {
       const context = {
-        emailExists: false,
-        passwordCorrect: false,
+        emailExists: true,
+        passwordCorrect: true,
         userSessionExists: false,
-        validationErrors: true // Errores de validación
+        validationErrors: false
       };
 
       const result = authTable.evaluateLogin(context);
 
       expect(result.matched).toBe(true);
       expect(result.rule).toBe(3);
-      expect(result.actions.redirect).toBe('/sign-in');
-      expect(result.actions.error).toMatch(/validación|validation|error/i);
+      expect(result.actions.redirect).toBe('/');
+      expect(result.actions.successMessage || result.actions.error).toBeDefined();
     });
   });
 
@@ -105,30 +105,30 @@ describe('AuthDecisionTable - Pruebas Unitarias', () => {
   });
 
   describe('Prioridad de reglas', () => {
-    test('regla 2 (sesión activa) debe tener prioridad sobre regla 1 (login exitoso)', () => {
+    test('regla 1 (validación) debe tener prioridad sobre otras reglas', () => {
       const context = {
         emailExists: true,
         passwordCorrect: true,
-        userSessionExists: true, // Sesión activa tiene prioridad
+        userSessionExists: false,
+        validationErrors: true // Validación tiene prioridad más alta
+      };
+
+      const result = authTable.evaluateLogin(context);
+
+      expect(result.rule).toBe(1); // Debe ser regla 1 (validación), no regla 3 (login)
+    });
+
+    test('regla 2 (sesión activa) debe tener prioridad sobre regla 3 (login exitoso)', () => {
+      const context = {
+        emailExists: true,
+        passwordCorrect: true,
+        userSessionExists: true, // Sesión activa tiene prioridad sobre login
         validationErrors: false
       };
 
       const result = authTable.evaluateLogin(context);
 
-      expect(result.rule).toBe(2); // Debe ser regla 2, no regla 1
-    });
-
-    test('regla 3 (validación) debe tener prioridad sobre otras reglas', () => {
-      const context = {
-        emailExists: true,
-        passwordCorrect: false,
-        userSessionExists: false,
-        validationErrors: true // Validación tiene prioridad
-      };
-
-      const result = authTable.evaluateLogin(context);
-
-      expect(result.rule).toBe(3);
+      expect(result.rule).toBe(2); // Debe ser regla 2 (sesión activa), no regla 3 (login exitoso)
     });
   });
 

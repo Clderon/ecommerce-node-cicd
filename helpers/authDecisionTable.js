@@ -28,22 +28,23 @@ class AuthDecisionTable {
 
   _initializeRules() {
     // IMPORTANTE: Las reglas se evalúan en orden, las más específicas primero
+    // Orden de prioridad: Validación > Sesión activa > Login exitoso > Errores
     
-    // Regla 1: LOGIN EXITOSO - Email existe y contraseña correcta (MÁS ESPECÍFICA - PRIMERO)
-    // Esta debe evaluarse ANTES que cualquier otra regla
+    // Regla 1: Errores de validación (MÁS ALTA PRIORIDAD - verificar primero)
+    // Debe evaluarse ANTES que cualquier otra regla
     this.table.addRule(
-      { emailExists: true, passwordCorrect: true },
+      { validationErrors: true },
       {
-        success: true,
-        error: null,
-        successMessage: '¡Bienvenido a Ecommerce Quantum!',
-        redirect: '/',
-        createSession: true,
+        success: false,
+        error: 'Error de validación. Por favor, verifica los datos ingresados.',
+        redirect: '/sign-in',
+        createSession: false,
       },
-      'Login exitoso'
+      'Errores de validación en formulario'
     );
 
-    // Regla 2: Usuario ya tiene sesión activa (solo para GET)
+    // Regla 2: Usuario ya tiene sesión activa (ALTA PRIORIDAD)
+    // Debe evaluarse ANTES que login exitoso para evitar crear sesión duplicada
     this.table.addRule(
       { userSessionExists: true },
       {
@@ -55,16 +56,18 @@ class AuthDecisionTable {
       'Usuario ya autenticado'
     );
 
-    // Regla 3: Errores de validación (verificar antes de consultar BD)
+    // Regla 3: LOGIN EXITOSO - Email existe y contraseña correcta
+    // Solo se evalúa si no hay errores de validación y no hay sesión activa
     this.table.addRule(
-      { validationErrors: true },
+      { emailExists: true, passwordCorrect: true },
       {
-        success: false,
-        error: 'Error de validación. Por favor, verifica los datos ingresados.',
-        redirect: '/sign-in',
-        createSession: false,
+        success: true,
+        error: null,
+        successMessage: '¡Bienvenido a Ecommerce Quantum!',
+        redirect: '/',
+        createSession: true,
       },
-      'Errores de validación en formulario'
+      'Login exitoso'
     );
 
     // Regla 4: Email existe pero contraseña incorrecta
