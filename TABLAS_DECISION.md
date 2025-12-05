@@ -1,12 +1,3 @@
-# Tablas de Decisión - Documentación Completa
-
-## Índice
-
-1. [Aplicación en el Sistema](#aplicación-en-el-sistema)
-2. [Tabla de Decisión Completa](#tabla-de-decisión-completa)
-
-
-
 
 ## Aplicación en el Sistema
 
