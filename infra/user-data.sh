@@ -167,7 +167,7 @@ docker logs ecommerce-app --tail 50 || true
 echo "Esperando a que la aplicación responda..."
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 HEALTH_URL="http://localhost:${app_port}/health"
-APP_URL="http://${PUBLIC_IP}:${app_port}"
+APP_URL="http://$${PUBLIC_IP}:${app_port}"
 
 for i in {1..30}; do
   if curl -f -s --max-time 3 "$HEALTH_URL" > /dev/null 2>&1; then
@@ -182,6 +182,6 @@ for i in {1..30}; do
   sleep 2
 done
 
-echo "Aplicación desplegada en ${APP_URL}"
-echo "Health check disponible en ${APP_URL}/health"
+echo "Aplicación desplegada en $${APP_URL}"
+echo "Health check disponible en $${APP_URL}/health"
 
