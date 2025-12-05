@@ -143,7 +143,10 @@ echo "📥 Descargando imagen Docker: ${docker_image}"
 if echo "${docker_image}" | grep -q "\.dkr\.ecr\."; then
   echo "🔐 Detectada imagen ECR, haciendo login..."
   REGION=$(echo "${docker_image}" | sed -n 's/.*\.dkr\.ecr\.\([^.]*\)\..*/\1/p')
-  aws ecr get-login-password --region ${REGION:-us-east-1} | docker login --username AWS --password-stdin $(echo "${docker_image}" | cut -d'/' -f1) || {
+  if [ -z "$REGION" ]; then
+    REGION="us-east-1"
+  fi
+  aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $(echo "${docker_image}" | cut -d'/' -f1) || {
     echo "⚠️ Error haciendo login a ECR, intentando continuar..."
   }
 fi
