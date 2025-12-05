@@ -96,26 +96,7 @@ resource "aws_subnet" "ecommerce_public_subnet" {
   }
 }
 
-# Subnet privada para RDS
-resource "aws_subnet" "ecommerce_private_subnet_1" {
-  vpc_id            = aws_vpc.ecommerce_vpc.id
-  cidr_block        = var.private_subnet_cidr_1
-  availability_zone = data.aws_availability_zones.available.names[0]
-
-  tags = {
-    Name = "ecommerce-temp-private-subnet-1"
-  }
-}
-
-resource "aws_subnet" "ecommerce_private_subnet_2" {
-  vpc_id            = aws_vpc.ecommerce_vpc.id
-  cidr_block        = var.private_subnet_cidr_2
-  availability_zone = data.aws_availability_zones.available.names[1]
-
-  tags = {
-    Name = "ecommerce-temp-private-subnet-2"
-  }
-}
+# Nota: Subnets privadas eliminadas ya que MySQL corre en Docker dentro del mismo EC2
 
 # Data source para availability zones
 data "aws_availability_zones" "available" {
@@ -192,64 +173,7 @@ resource "aws_security_group" "ecommerce_ec2_sg" {
   }
 }
 
-# Security Group para RDS
-resource "aws_security_group" "ecommerce_rds_sg" {
-  name        = "ecommerce-rds-sg-${local.unique_id}"
-  description = "Security group for Ecommerce RDS MySQL"
-  vpc_id      = aws_vpc.ecommerce_vpc.id
-
-  ingress {
-    description     = "MySQL"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecommerce_ec2_sg.id]
-  }
-
-  egress {
-    description = "All outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "ecommerce-rds-sg"
-  }
-}
-
-# DB Subnet Group para RDS
-resource "aws_db_subnet_group" "ecommerce_db_subnet_group" {
-  name       = "ecommerce-db-subnet-group-${local.unique_id}"
-  subnet_ids = [aws_subnet.ecommerce_private_subnet_1.id, aws_subnet.ecommerce_private_subnet_2.id]
-
-  tags = {
-    Name = "ecommerce-db-subnet-group-${local.unique_id}"
-  }
-}
-
-# RDS MySQL Instance
-resource "aws_db_instance" "ecommerce_db" {
-  identifier             = "ecommerce-db-${local.unique_id}"
-  engine                 = "mysql"
-  engine_version         = "8.0"
-  instance_class         = var.db_instance_class
-  allocated_storage      = var.db_allocated_storage
-  storage_type           = "gp3"
-  db_name                = var.db_name
-  username               = var.db_username
-  password               = var.db_password
-  db_subnet_group_name   = aws_db_subnet_group.ecommerce_db_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.ecommerce_rds_sg.id]
-  publicly_accessible    = false
-  skip_final_snapshot    = true # Para infraestructura temporal
-  backup_retention_period = 0    # Sin backups para infraestructura temporal
-
-  tags = {
-    Name = "ecommerce-temp-db"
-  }
-}
+# Nota: RDS eliminado - MySQL ahora corre en Docker dentro del mismo EC2
 
 # Key Pair para EC2 (usando clave existente o creando nueva)
 resource "aws_key_pair" "ecommerce_key" {
@@ -300,7 +224,7 @@ resource "aws_instance" "ecommerce_app" {
   iam_instance_profile   = aws_iam_instance_profile.ecommerce_ec2_profile.name
 
   user_data = base64encode(templatefile("${path.module}/user-data.sh", {
-    db_host     = aws_db_instance.ecommerce_db.address
+    db_host     = "localhost"  # MySQL corre en Docker dentro del mismo EC2
     db_user     = var.db_username
     db_password = var.db_password
     db_name     = var.db_name

@@ -18,15 +18,9 @@ output "ec2_public_dns" {
   value       = aws_instance.ecommerce_app.public_dns
 }
 
-output "rds_endpoint" {
-  description = "Endpoint de RDS"
-  value       = aws_db_instance.ecommerce_db.address
-  sensitive   = true
-}
-
-output "rds_port" {
-  description = "Puerto de RDS"
-  value       = aws_db_instance.ecommerce_db.port
+output "mysql_info" {
+  description = "Información de MySQL (corre en Docker dentro del EC2)"
+  value       = "MySQL corre en Docker dentro del mismo EC2 en localhost:3306"
 }
 
 output "application_url" {

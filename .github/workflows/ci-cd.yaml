@@ -191,23 +191,73 @@ jobs:
         run: |
           echo "application_url=$(terraform output -raw application_url)" >> $GITHUB_OUTPUT
           echo "ec2_instance_id=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
-          echo "rds_endpoint=$(terraform output -raw rds_endpoint)" >> $GITHUB_OUTPUT
+          echo "mysql_info=$(terraform output -raw mysql_info)" >> $GITHUB_OUTPUT
 
       - name: Esperar a que la aplicación esté lista
         run: |
           echo "Esperando a que la aplicación esté disponible..."
-          max_attempts=30
+          APP_URL="${{ steps.terraform-output.outputs.application_url }}"
+          HEALTH_URL="${APP_URL}/health"
+          max_attempts=60
           attempt=0
+          
+          echo "📍 URL de la aplicación: $APP_URL"
+          echo "🏥 Health check endpoint: $HEALTH_URL"
+          echo "⏱️  Tiempo máximo de espera: $((max_attempts * 10)) segundos"
+          
+          # Esperar un poco antes de empezar (la instancia necesita tiempo para inicializar)
+          echo "⏳ Esperando 30 segundos para que la instancia EC2 inicialice..."
+          sleep 30
+          
           while [ $attempt -lt $max_attempts ]; do
-            if curl -f -s ${{ steps.terraform-output.outputs.application_url }} > /dev/null 2>&1; then
-              echo "✅ Aplicación disponible en ${{ steps.terraform-output.outputs.application_url }}"
+            attempt=$((attempt + 1))
+            
+            # Intentar health check primero (más rápido, no requiere DB)
+            if curl -f -s --max-time 5 "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Health check exitoso en intento $attempt/$max_attempts"
+              echo "✅ Aplicación disponible en $APP_URL"
+              curl -s "$HEALTH_URL" | head -20
               exit 0
             fi
-            attempt=$((attempt + 1))
+            
+            # Si el health check falla, intentar la URL principal también
+            if curl -f -s --max-time 5 "$APP_URL" > /dev/null 2>&1; then
+              echo "✅ Aplicación respondiendo en intento $attempt/$max_attempts"
+              echo "✅ Aplicación disponible en $APP_URL"
+              exit 0
+            fi
+            
+            # Mostrar información de diagnóstico cada 5 intentos
+            if [ $((attempt % 5)) -eq 0 ]; then
+              echo ""
+              echo "🔍 Diagnóstico (intento $attempt/$max_attempts):"
+              echo "   - Verificando conectividad básica..."
+              if ping -c 1 -W 2 $(echo "$APP_URL" | sed 's|http://||' | sed 's|:.*||') > /dev/null 2>&1; then
+                echo "   ✅ Host alcanzable"
+              else
+                echo "   ⚠️  Host no alcanzable aún"
+              fi
+              echo "   - Verificando puerto..."
+              HOST_PORT=$(echo "$APP_URL" | sed 's|http://||' | sed 's|/.*||')
+              HOST=$(echo "$HOST_PORT" | cut -d: -f1)
+              PORT=$(echo "$HOST_PORT" | cut -d: -f2)
+              if timeout 2 bash -c "echo > /dev/tcp/$HOST/$PORT" 2>/dev/null; then
+                echo "   ✅ Puerto $PORT abierto"
+              else
+                echo "   ⚠️  Puerto $PORT aún no responde"
+              fi
+              echo ""
+            fi
+            
             echo "Intento $attempt/$max_attempts: Aplicación no disponible aún, esperando 10 segundos..."
             sleep 10
           done
+          
+          echo ""
           echo "⚠️ La aplicación no respondió después de $max_attempts intentos"
+          echo "🔍 Último intento de diagnóstico:"
+          curl -v --max-time 5 "$HEALTH_URL" 2>&1 || echo "Health check falló"
+          curl -v --max-time 5 "$APP_URL" 2>&1 || echo "URL principal falló"
           exit 1
 
       - name: Mostrar información de despliegue
@@ -215,7 +265,7 @@ jobs:
           echo "🚀 Despliegue completado"
           echo "📍 URL de la aplicación: ${{ steps.terraform-output.outputs.application_url }}"
           echo "🖥️  Instancia EC2: ${{ steps.terraform-output.outputs.ec2_instance_id }}"
-          echo "🗄️  RDS Endpoint: ${{ steps.terraform-output.outputs.rds_endpoint }}"
+          echo "🗄️  MySQL: ${{ steps.terraform-output.outputs.mysql_info }}"
 
   # ============================================
   # Destroy: Destruir infraestructura

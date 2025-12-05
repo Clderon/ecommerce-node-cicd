@@ -59,6 +59,15 @@ class AppController {
     this.app.set('views', path.join(__dirname, '../views'));
     this.app.use(express.static(path.join(__dirname, '../public')));
 
+    // Health check endpoint (sin dependencias de DB)
+    this.app.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      });
+    });
+
     // Ruta principal
     this.app.get('/', (req, res) => {
       const success = req.session['success'];

@@ -16,17 +16,7 @@ variable "public_subnet_cidr" {
   default     = "10.0.1.0/24"
 }
 
-variable "private_subnet_cidr_1" {
-  description = "CIDR block para la primera subnet privada"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "private_subnet_cidr_2" {
-  description = "CIDR block para la segunda subnet privada"
-  type        = string
-  default     = "10.0.3.0/24"
-}
+# Nota: Variables de subnets privadas eliminadas (ya no necesarias sin RDS)
 
 variable "ec2_instance_type" {
   description = "Tipo de instancia EC2"
@@ -34,17 +24,7 @@ variable "ec2_instance_type" {
   default     = "t3.micro"
 }
 
-variable "db_instance_class" {
-  description = "Clase de instancia RDS"
-  type        = string
-  default     = "db.t3.micro"
-}
-
-variable "db_allocated_storage" {
-  description = "Almacenamiento asignado para RDS (GB)"
-  type        = number
-  default     = 20
-}
+# Nota: Variables de RDS eliminadas (MySQL ahora corre en Docker)
 
 variable "db_name" {
   description = "Nombre de la base de datos"
