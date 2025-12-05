@@ -64,8 +64,50 @@ locals {
   unique_id = substr(md5(timestamp()), 0, 8)
 }
 
-# VPC para aislar la infraestructura temporal
+# Data source para VPC por defecto (si no se especifica una VPC existente)
+data "aws_vpc" "default" {
+  count   = var.use_existing_vpc && var.existing_vpc_id == "" ? 1 : 0
+  default = true
+}
+
+# Local para determinar VPC ID a usar (sin referencia circular)
+locals {
+  vpc_id_for_data = var.use_existing_vpc ? (
+    var.existing_vpc_id != "" ? var.existing_vpc_id : (length(data.aws_vpc.default) > 0 ? data.aws_vpc.default[0].id : "")
+  ) : ""
+}
+
+# Data source para buscar subnets en VPC existente
+data "aws_subnets" "all" {
+  count = var.use_existing_vpc && var.existing_subnet_id == "" && local.vpc_id_for_data != "" ? 1 : 0
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id_for_data]
+  }
+}
+
+# Data source para subnet existente específica
+data "aws_subnet" "existing" {
+  count = var.use_existing_vpc && var.existing_subnet_id != "" ? 1 : 0
+  id    = var.existing_subnet_id
+}
+
+# Local para determinar VPC ID y Subnet ID finales
+locals {
+  vpc_id = var.use_existing_vpc ? (
+    var.existing_vpc_id != "" ? var.existing_vpc_id : (length(data.aws_vpc.default) > 0 ? data.aws_vpc.default[0].id : "")
+  ) : (length(aws_vpc.ecommerce_vpc) > 0 ? aws_vpc.ecommerce_vpc[0].id : "")
+  
+  subnet_id = var.use_existing_vpc ? (
+    var.existing_subnet_id != "" ? var.existing_subnet_id : (
+      length(data.aws_subnets.all) > 0 && length(data.aws_subnets.all[0].ids) > 0 ? data.aws_subnets.all[0].ids[0] : ""
+    )
+  ) : (length(aws_subnet.ecommerce_public_subnet) > 0 ? aws_subnet.ecommerce_public_subnet[0].id : "")
+}
+
+# VPC para aislar la infraestructura temporal (solo si no se usa VPC existente)
 resource "aws_vpc" "ecommerce_vpc" {
+  count                = var.use_existing_vpc ? 0 : 1
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -75,18 +117,20 @@ resource "aws_vpc" "ecommerce_vpc" {
   }
 }
 
-# Internet Gateway
+# Internet Gateway (solo si se crea nueva VPC)
 resource "aws_internet_gateway" "ecommerce_igw" {
-  vpc_id = aws_vpc.ecommerce_vpc.id
+  count  = var.use_existing_vpc ? 0 : 1
+  vpc_id = aws_vpc.ecommerce_vpc[0].id
 
   tags = {
     Name = "ecommerce-temp-igw"
   }
 }
 
-# Subnet pública
+# Subnet pública (solo si se crea nueva VPC)
 resource "aws_subnet" "ecommerce_public_subnet" {
-  vpc_id                  = aws_vpc.ecommerce_vpc.id
+  count                   = var.use_existing_vpc ? 0 : 1
+  vpc_id                  = aws_vpc.ecommerce_vpc[0].id
   cidr_block              = var.public_subnet_cidr
   availability_zone       = data.aws_availability_zones.available.names[0]
   map_public_ip_on_launch = true
@@ -103,13 +147,14 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# Route Table para subnet pública
+# Route Table para subnet pública (solo si se crea nueva VPC)
 resource "aws_route_table" "ecommerce_public_rt" {
-  vpc_id = aws_vpc.ecommerce_vpc.id
+  count  = var.use_existing_vpc ? 0 : 1
+  vpc_id = aws_vpc.ecommerce_vpc[0].id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.ecommerce_igw.id
+    gateway_id = aws_internet_gateway.ecommerce_igw[0].id
   }
 
   tags = {
@@ -118,15 +163,16 @@ resource "aws_route_table" "ecommerce_public_rt" {
 }
 
 resource "aws_route_table_association" "ecommerce_public_rta" {
-  subnet_id      = aws_subnet.ecommerce_public_subnet.id
-  route_table_id = aws_route_table.ecommerce_public_rt.id
+  count          = var.use_existing_vpc ? 0 : 1
+  subnet_id      = aws_subnet.ecommerce_public_subnet[0].id
+  route_table_id = aws_route_table.ecommerce_public_rt[0].id
 }
 
 # Security Group para EC2
 resource "aws_security_group" "ecommerce_ec2_sg" {
   name        = "ecommerce-ec2-sg-${local.unique_id}"
   description = "Security group for Ecommerce EC2 instance"
-  vpc_id      = aws_vpc.ecommerce_vpc.id
+  vpc_id      = local.vpc_id
 
   ingress {
     description = "HTTP"
@@ -220,7 +266,7 @@ resource "aws_instance" "ecommerce_app" {
   instance_type          = var.ec2_instance_type
   key_name               = var.create_key_pair ? aws_key_pair.ecommerce_key[0].key_name : var.existing_key_name
   vpc_security_group_ids = [aws_security_group.ecommerce_ec2_sg.id]
-  subnet_id              = aws_subnet.ecommerce_public_subnet.id
+  subnet_id              = local.subnet_id
   iam_instance_profile   = aws_iam_instance_profile.ecommerce_ec2_profile.name
 
   user_data = base64encode(templatefile("${path.module}/user-data.sh", {

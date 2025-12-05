@@ -1,6 +1,6 @@
 output "vpc_id" {
-  description = "ID de la VPC creada"
-  value       = aws_vpc.ecommerce_vpc.id
+  description = "ID de la VPC utilizada (creada o existente)"
+  value       = local.vpc_id
 }
 
 output "ec2_instance_id" {

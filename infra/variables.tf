@@ -4,14 +4,32 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "use_existing_vpc" {
+  description = "Usar VPC existente en lugar de crear una nueva"
+  type        = bool
+  default     = true
+}
+
+variable "existing_vpc_id" {
+  description = "ID de VPC existente (si use_existing_vpc es true). Si está vacío, usa la VPC por defecto"
+  type        = string
+  default     = ""
+}
+
+variable "existing_subnet_id" {
+  description = "ID de subnet existente (si use_existing_vpc es true). Si está vacío, busca una subnet pública"
+  type        = string
+  default     = ""
+}
+
 variable "vpc_cidr" {
-  description = "CIDR block para la VPC"
+  description = "CIDR block para la VPC (solo si use_existing_vpc es false)"
   type        = string
   default     = "10.0.0.0/16"
 }
 
 variable "public_subnet_cidr" {
-  description = "CIDR block para la subnet pública"
+  description = "CIDR block para la subnet pública (solo si use_existing_vpc es false)"
   type        = string
   default     = "10.0.1.0/24"
 }
