@@ -254,6 +254,28 @@ resource "aws_iam_role" "ecommerce_ec2_role" {
   }
 }
 
+# IAM Policy para permitir acceso a ECR
+resource "aws_iam_role_policy" "ecommerce_ec2_ecr_policy" {
+  name = "ecommerce-ec2-ecr-policy-${local.unique_id}"
+  role = aws_iam_role.ecommerce_ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ecommerce_ec2_profile" {
   name = "ecommerce-ec2-profile-${local.unique_id}"
   role = aws_iam_role.ecommerce_ec2_role.name

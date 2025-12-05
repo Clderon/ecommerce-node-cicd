@@ -137,7 +137,34 @@ EOF
 echo "✅ Schema de base de datos creado"
 
 # Descargar e iniciar contenedor Docker
-docker pull ${docker_image}
+echo "📥 Descargando imagen Docker: ${docker_image}"
+
+# Si la imagen está en ECR, hacer login primero
+if echo "${docker_image}" | grep -q "\.dkr\.ecr\."; then
+  echo "🔐 Detectada imagen ECR, haciendo login..."
+  REGION=$(echo "${docker_image}" | sed -n 's/.*\.dkr\.ecr\.\([^.]*\)\..*/\1/p')
+  aws ecr get-login-password --region ${REGION:-us-east-1} | docker login --username AWS --password-stdin $(echo "${docker_image}" | cut -d'/' -f1) || {
+    echo "⚠️ Error haciendo login a ECR, intentando continuar..."
+  }
+fi
+
+# Descargar imagen con verificación de errores
+if docker pull ${docker_image}; then
+  echo "✅ Imagen descargada exitosamente"
+else
+  echo "❌ ERROR: No se pudo descargar la imagen Docker"
+  echo "   Imagen: ${docker_image}"
+  echo "   Verifica que la imagen existe y que tienes permisos para acceder"
+  exit 1
+fi
+
+# Verificar que la imagen existe
+if ! docker images | grep -q "$(echo ${docker_image} | cut -d':' -f1)"; then
+  echo "❌ ERROR: La imagen no se encuentra después del pull"
+  echo "   Imágenes disponibles:"
+  docker images
+  exit 1
+fi
 
 # Detener contenedor existente si existe
 docker stop ecommerce-app || true
@@ -145,13 +172,20 @@ docker rm ecommerce-app || true
 
 # Iniciar nuevo contenedor de la aplicación (conectado a la misma red que MySQL)
 echo "🚀 Iniciando contenedor de la aplicación..."
-docker run -d \
+if docker run -d \
   --name ecommerce-app \
   --restart unless-stopped \
   --network ecommerce-network \
   -p 0.0.0.0:${app_port}:${app_port} \
   --env-file .env \
-  ${docker_image}
+  ${docker_image}; then
+  echo "✅ Contenedor creado exitosamente"
+else
+  echo "❌ ERROR: No se pudo crear el contenedor"
+  echo "   Verificando errores..."
+  docker ps -a | grep ecommerce-app || echo "   Contenedor no existe"
+  exit 1
+fi
 
 echo "✅ Contenedor iniciado, verificando mapeo de puertos..."
 docker port ecommerce-app || echo "⚠️ No se puede verificar mapeo de puertos"
