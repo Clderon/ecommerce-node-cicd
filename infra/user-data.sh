@@ -38,8 +38,9 @@ mkdir -p /opt/mysql-data
 cd /opt/ecommerce
 
 # Crear archivo .env con variables de entorno
+# IMPORTANTE: DB_HOST debe ser el nombre del contenedor MySQL en la red Docker
 cat > .env <<EOF
-DB_HOST=${db_host}
+DB_HOST=ecommerce-mysql
 DB_USER=${db_user}
 DB_PASSWORD=${db_password}
 DB_NAME=${db_name}
@@ -47,6 +48,12 @@ PORT=${app_port}
 HOST=0.0.0.0
 SESSION_SECRET=$(openssl rand -hex 32)
 EOF
+
+echo "📝 Variables de entorno configuradas:"
+echo "   DB_HOST=ecommerce-mysql (nombre del contenedor MySQL)"
+echo "   DB_USER=${db_user}"
+echo "   DB_NAME=${db_name}"
+echo "   PORT=${app_port}"
 
 # Levantar MySQL en Docker
 echo "🚀 Iniciando MySQL en Docker..."
@@ -137,31 +144,63 @@ docker stop ecommerce-app || true
 docker rm ecommerce-app || true
 
 # Iniciar nuevo contenedor de la aplicación (conectado a la misma red que MySQL)
+echo "🚀 Iniciando contenedor de la aplicación..."
 docker run -d \
   --name ecommerce-app \
   --restart unless-stopped \
   --network ecommerce-network \
-  -p ${app_port}:${app_port} \
+  -p 0.0.0.0:${app_port}:${app_port} \
   --env-file .env \
   ${docker_image}
 
+echo "✅ Contenedor iniciado, verificando mapeo de puertos..."
+docker port ecommerce-app || echo "⚠️ No se puede verificar mapeo de puertos"
+
 # Esperar a que el contenedor esté corriendo
-echo "Esperando a que el contenedor inicie..."
-sleep 5
+echo "⏳ Esperando a que el contenedor inicie (puede tardar hasta 30 segundos)..."
+sleep 10
+
+# Verificar que el contenedor esté iniciando
+for i in {1..6}; do
+  if docker ps -a | grep -q ecommerce-app; then
+    CONTAINER_STATUS=$(docker inspect -f '{{.State.Status}}' ecommerce-app 2>/dev/null || echo "unknown")
+    echo "   Estado del contenedor: $CONTAINER_STATUS"
+    if [ "$CONTAINER_STATUS" = "running" ]; then
+      echo "✅ Contenedor está corriendo"
+      break
+    fi
+  fi
+  echo "   Esperando... ($i/6)"
+  sleep 5
+done
 
 # Verificar que el contenedor esté corriendo
+echo "🔍 Verificando estado del contenedor..."
 for i in {1..12}; do
   if docker ps | grep -q ecommerce-app; then
     echo "✅ Contenedor corriendo"
+    # Verificar que el contenedor no esté en estado de error
+    CONTAINER_STATUS=$(docker inspect -f '{{.State.Status}}' ecommerce-app 2>/dev/null || echo "unknown")
+    if [ "$CONTAINER_STATUS" != "running" ]; then
+      echo "⚠️ Contenedor en estado: $CONTAINER_STATUS"
+    fi
     break
   fi
   echo "Intento $i/12: Contenedor aún no está corriendo..."
   sleep 5
 done
 
+# Verificar conectividad entre contenedores
+echo "🔍 Verificando conectividad entre contenedores..."
+docker exec ecommerce-app ping -c 2 ecommerce-mysql > /dev/null 2>&1 && echo "✅ Aplicación puede alcanzar MySQL" || echo "⚠️ Problema de conectividad con MySQL"
+
 # Logs para debugging
-echo "=== Logs del contenedor ==="
-docker logs ecommerce-app --tail 50 || true
+echo "=== Logs del contenedor de la aplicación ==="
+docker logs ecommerce-app --tail 100 || true
+
+# Verificar que el puerto esté expuesto correctamente
+echo "🔍 Verificando puerto ${app_port}..."
+netstat -tlnp | grep ":${app_port}" || ss -tlnp | grep ":${app_port}" || echo "⚠️ Puerto ${app_port} no está escuchando"
 
 # Esperar a que la aplicación responda (health check)
 echo "Esperando a que la aplicación responda..."
@@ -172,12 +211,39 @@ APP_URL="http://$${PUBLIC_IP}:${app_port}"
 for i in {1..30}; do
   if curl -f -s --max-time 3 "$HEALTH_URL" > /dev/null 2>&1; then
     echo "✅ Aplicación respondiendo en intento $i/30"
+    # Verificar respuesta del health check
+    curl -s "$HEALTH_URL" | head -5
     break
   fi
+  
+  # Mostrar diagnóstico cada 5 intentos
+  if [ $((i % 5)) -eq 0 ]; then
+    echo ""
+    echo "🔍 Diagnóstico (intento $i/30):"
+    echo "   - Estado del contenedor:"
+    docker ps -a | grep ecommerce-app || echo "     Contenedor no encontrado"
+    echo "   - Últimos logs del contenedor:"
+    docker logs ecommerce-app --tail 20 2>&1 | tail -5 || echo "     No se pueden obtener logs"
+    echo "   - Verificando puerto:"
+    docker port ecommerce-app 2>&1 || echo "     No se puede verificar puerto"
+    echo ""
+  fi
+  
   if [ $i -eq 30 ]; then
     echo "⚠️ La aplicación no respondió después de 30 intentos"
-    echo "Logs del contenedor:"
-    docker logs ecommerce-app --tail 100 || true
+    echo ""
+    echo "=== Diagnóstico completo ==="
+    echo "Estado del contenedor:"
+    docker ps -a | grep ecommerce-app || echo "Contenedor no encontrado"
+    echo ""
+    echo "Logs completos del contenedor:"
+    docker logs ecommerce-app --tail 200 2>&1 || echo "No se pueden obtener logs"
+    echo ""
+    echo "Verificando conectividad a MySQL desde el contenedor:"
+    docker exec ecommerce-app ping -c 2 ecommerce-mysql 2>&1 || echo "No se puede hacer ping a MySQL"
+    echo ""
+    echo "Verificando variables de entorno:"
+    docker exec ecommerce-app env | grep -E "DB_|PORT|HOST" || echo "No se pueden obtener variables de entorno"
   fi
   sleep 2
 done
